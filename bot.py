@@ -25,10 +25,8 @@ from telegram.ext import (
 )
 from dotenv import load_dotenv
 
-# ----------------------------------------------------------------------
-# 1️⃣ Конфигурация и проверка .env
-# ----------------------------------------------------------------------
-load_dotenv()  # ищет файл .env в текущем каталоге
+
+load_dotenv()  
 
 if not os.path.exists(".env"):
     sys.exit("❌ .env не найден! Создайте файл .env с переменной TELEGRAM_BOT_TOKEN.")
@@ -37,16 +35,12 @@ TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 if not TELEGRAM_BOT_TOKEN or TELEGRAM_BOT_TOKEN.startswith("ваш_токен"):
     sys.exit("❌ Установите корректный TELEGRAM_BOT_TOKEN в .env")
 
-# Создаем директории для хранения данных
 Path("stories").mkdir(exist_ok=True)
 Path("logs").mkdir(exist_ok=True)
 
-# ----------------------------------------------------------------------
-# 2️⃣ Логирование (исправлено для Windows)
-# ----------------------------------------------------------------------
-# Решение проблемы с кодировкой в Windows
+
 if sys.platform.startswith('win'):
-    # Для Windows используем UTF-8 для логов
+    
     logging.basicConfig(
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         level=logging.INFO,
@@ -67,29 +61,27 @@ else:
 
 logger = logging.getLogger(__name__)
 
-# ----------------------------------------------------------------------
-# 3️⃣ Хранилище данных пользователей
-# ----------------------------------------------------------------------
+
 user_data = defaultdict(dict)  # {user_id: {"story": "...", "history": [...]}}
 
 
 def save_story(user_id: int, story_text: str) -> None:
-    """Сохраняет текст сказки для пользователя"""
+   
     user_data[user_id]["story"] = story_text
 
 
 def get_story(user_id: int) -> str:
-    """Получает текст сказки пользователя"""
+  
     return user_data[user_id].get("story", "")
 
 
 def clear_user_data(user_id: int) -> None:
-    """Очищает данные пользователя"""
+
     user_data.pop(user_id, None)
 
 
 def save_history(user_id: int, role: str, content: str) -> None:
-    """Сохраняет историю диалога"""
+
     if "history" not in user_data[user_id]:
         user_data[user_id]["history"] = []
 
@@ -100,36 +92,33 @@ def save_history(user_id: int, role: str, content: str) -> None:
 
 
 def get_history(user_id: int) -> list:
-    """Получает историю диалога"""
+  
     return user_data[user_id].get("history", [])
 
 
 def clear_history(user_id: int) -> None:
-    """Очищает историю диалога"""
+  
     if "history" in user_data[user_id]:
         user_data[user_id]["history"] = []
 
 
-# ----------------------------------------------------------------------
-# 4️⃣ Функции для работы с ИИ через Ollama
-# ----------------------------------------------------------------------
+
 def query_story(story_text: str, question: str, history: list = None) -> str:
     """
     Отправляет запрос к ИИ с текстом сказки и вопросом через Ollama.
     """
     try:
-        # Проверяем наличие необходимых библиотек
+        
         try:
             from langchain_ollama import ChatOllama
             from langchain_core.prompts import ChatPromptTemplate
         except ImportError:
             return "Для работы с ИИ необходимо установить дополнительные библиотеки:\npip install langchain langchain-ollama"
 
-        # Настройки модели (можно изменить в .env)
+      
         MODEL_NAME = os.getenv("OLLAMA_MODEL", "gemma2:2b")  # По умолчанию gemma2:2b
         MAX_STORY_LENGTH = int(os.getenv("MAX_STORY_LENGTH", "8000"))  # Максимальная длина сказки
 
-        # Создаем промпт
         template = """
         Ты помощник, который отвечает на вопросы по сказкам.
         Вот текст сказки:
@@ -146,20 +135,19 @@ def query_story(story_text: str, question: str, history: list = None) -> str:
 
         prompt = ChatPromptTemplate.from_template(template)
 
-        # Подготавливаем историю
         history_str = ""
         if history:
             for item in history[-4:]:  # последние 2 пары
                 role = "Пользователь" if item["role"] == "user" else "Ассистент"
                 history_str += f"{role}: {item['content']}\n"
 
-        # Создаем модель
+       
         try:
             model = ChatOllama(model=MODEL_NAME)
         except Exception as model_error:
             return f"Не удалось подключиться к модели {MODEL_NAME}. Убедитесь, что Ollama запущена и модель установлена.\nОшибка: {str(model_error)}"
 
-        # Выполняем запрос
+      
         try:
             response = model.invoke(
                 prompt.format(
@@ -179,9 +167,7 @@ def query_story(story_text: str, question: str, history: list = None) -> str:
         return f"Произошла ошибка при обработке вашего запроса: {str(e)}"
 
 
-# ----------------------------------------------------------------------
-# 5️⃣ Обработчики команд
-# ----------------------------------------------------------------------
+
 async def start(update: Update, context: CallbackContext) -> None:
     user = update.effective_user
     clear_user_data(user.id)
@@ -222,11 +208,8 @@ async def clear_command(update: Update, context: CallbackContext) -> None:
     await update.message.reply_text("  Все данные очищены. Можете загрузить новую сказку.")
 
 
-# ----------------------------------------------------------------------
-# 6️⃣ Обработчики сообщений
-# ----------------------------------------------------------------------
 async def handle_document(update: Update, context: CallbackContext) -> None:
-    """Обработка отправленных документов"""
+
     user = update.effective_user
     document = update.message.document
 
@@ -319,11 +302,9 @@ def main() -> None:
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("clear", clear_command))
 
-    # Обработчики сообщений
     app.add_handler(MessageHandler(filters.Document.ALL, handle_document))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-    # Используем ASCII символы для лога
     logger.info("  Bot started and listening for messages")
     app.run_polling()
 
