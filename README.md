@@ -25,3 +25,4 @@ Telegram-бот, который анализирует присланные те
 * В терминале Pycharm выполните:
   pip install python-telegram-bot python-dotenv langchain langchain-ollama langchain-core
 * по желанию замените в .env токен бота на свой
+* Бот: @FairyTailForBot
