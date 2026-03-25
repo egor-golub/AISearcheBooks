@@ -24,5 +24,6 @@ Telegram-бот, который анализирует присланные те
   ollama run gemma2:2b
 * В терминале Pycharm выполните:
   pip install python-telegram-bot python-dotenv langchain langchain-ollama langchain-core
+### 3. Дополнително 
 * по желанию замените в .env токен бота на свой
 * Бот: @FairyTailForBot
